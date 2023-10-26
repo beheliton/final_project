@@ -48,7 +48,7 @@ class Main(tk.Frame):
         btn_refresh.pack(side=tk.LEFT)
 
         # Создание таблицы для отображения данных
-        self.tree = ttk.Treeview(self, columns=('ID', 'name', 'tel', 'email'),
+        self.tree = ttk.Treeview(self, columns=('ID', 'name', 'tel', 'email', 'salary'),
                                  height=45, show='headings')
         
         # Задание параметров столбцов
@@ -56,12 +56,14 @@ class Main(tk.Frame):
         self.tree.column("name", width=300, anchor=tk.CENTER)
         self.tree.column("tel", width=150, anchor=tk.CENTER)
         self.tree.column("email", width=150, anchor=tk.CENTER)
+        self.tree.column("salary", width=140, anchor=tk.CENTER)
 
         # Задание заголовков столбцов
         self.tree.heading("ID", text='ID')
         self.tree.heading("name", text='ФИО')
         self.tree.heading("tel", text='Телефон')
         self.tree.heading("email", text='E-mail')
+        self.tree.heading("salary", text='Зарплата')
         self.tree.pack(side=tk.LEFT)
 
         # Создание вертикальной прокрутки для таблицы
@@ -77,14 +79,14 @@ class Main(tk.Frame):
          for row in self.db.c.fetchall()]
 
     # Добавление новой записи
-    def records(self, name, tel, email):
-        self.db.insert_data(name, tel, email)
+    def records(self, name, tel, email, salary):
+        self.db.insert_data(name, tel, email, salary)
         self.view_records()
 
     # Обновление записи
-    def update_record(self, name, tel, email):
-        self.db.c.execute('''UPDATE db SET name=?, tel=?, email=? WHERE ID=?''',
-                          (name, tel, email, self.tree.set(self.tree.selection()[0], '#1')))
+    def update_record(self, name, tel, email, salary):
+        self.db.c.execute('''UPDATE db SET name=?, tel=?, email=?, salary=? WHERE ID=?''',
+                          (name, tel, email, salary, self.tree.set(self.tree.selection()[0], '#1')))
         self.db.conn.commit()
         self.view_records()
 
@@ -137,10 +139,12 @@ class Child(tk.Toplevel):
         # Создание элементов формы (метки и поля ввода)
         label_name = tk.Label(self, text='ФИО:')
         label_name.place(x=50, y=50)
-        label_select = tk.Label(self, text='Телефон')
+        label_select = tk.Label(self, text='Телефон:')
         label_select.place(x=50, y=80)
-        label_sum = tk.Label(self, text='E-mail')
+        label_sum = tk.Label(self, text='E-mail:')
         label_sum.place(x=50, y=110)
+        label_salary = tk.Label(self, text='Зарплата:')
+        label_salary.place(x=50, y=140)
 
         self.entry_name = ttk.Entry(self)
         self.entry_name.place(x=200, y=50)
@@ -151,16 +155,20 @@ class Child(tk.Toplevel):
         self.entry_tel = ttk.Entry(self)
         self.entry_tel.place(x=200, y=110)
 
+        self.entry_salary = ttk.Entry(self)
+        self.entry_salary.place(x=200, y=140)
+
         # Создание кнопок "Добавить" и "Закрыть"
         self.btn_cancel = ttk.Button(
             self, text='Закрыть', command=self.destroy)
         self.btn_cancel.place(x=300, y=170)
 
         self.btn_ok = ttk.Button(self, text='Добавить')
-        self.btn_ok.place(x=220, y=170)
+        self.btn_ok.place(x=200, y=170)
         self.btn_ok.bind('<Button-1>', lambda event: self.view.records(self.entry_name.get(),
                                                                        self.entry_email.get(),
-                                                                       self.entry_tel.get()))
+                                                                       self.entry_tel.get(),
+                                                                       self.entry_salary.get()))
 
 
 # Класс диалогового окна для редактирования записи
@@ -175,10 +183,11 @@ class Update(Child):
     def init_edit(self):
         self.title('Редактировать позицию')
         btn_edit = ttk.Button(self, text='Редактировать')
-        btn_edit.place(x=205, y=170)
+        btn_edit.place(x=165, y=170)
         btn_edit.bind('<Button-1>', lambda event: self.view.update_record(self.entry_name.get(),
                                                                           self.entry_email.get(),
-                                                                          self.entry_tel.get()))
+                                                                          self.entry_tel.get(),
+                                                                          self.entry_salary.get()))
 
         btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
         self.btn_ok.destroy()
@@ -191,6 +200,7 @@ class Update(Child):
         self.entry_name.insert(0, row[1])
         self.entry_email.insert(0, row[2])
         self.entry_tel.insert(0, row[3])
+        self.entry_salary.insert(0, row[4])
 
 
 # Класс диалогового окна для поиска записей
@@ -216,7 +226,7 @@ class Search(tk.Toplevel):
         btn_cancel.place(x=185, y=50)
 
         btn_search = ttk.Button(self, text='Поиск')
-        btn_search.place(x=105, y=50)
+        btn_search.place(x=95, y=50)
         btn_search.bind('<Button-1>', 
                         lambda event: self.view.search_records(self.entry_search.get()))
         btn_search.bind('<Button-1>', 
@@ -232,13 +242,13 @@ class DB:
 
         # Создание таблицы, если она не существует
         self.c.execute(
-            '''CREATE TABLE IF NOT EXISTS db (id integer primary key, name text, tel text, email text)''')
+            '''CREATE TABLE IF NOT EXISTS db (id integer primary key, name text, tel text, email text, salary integer)''')
         self.conn.commit()
 
     # Вставка новой записи
-    def insert_data(self, name, tel, email):
-        self.c.execute('''INSERT INTO db (name, tel, email) VALUES (?, ?, ?)''',
-                       (name, tel, email))
+    def insert_data(self, name, tel, email, salary):
+        self.c.execute('''INSERT INTO db (name, tel, email, salary) VALUES (?, ?, ?, ?)''',
+                       (name, tel, email, salary))
         self.conn.commit()
 
 
@@ -248,6 +258,6 @@ if __name__ == '__main__':
     app = Main(root)
     app.pack()
     root.title('Телефонная книга')
-    root.geometry('665x450')
+    root.geometry('765x550')
     root.resizable(False, False)
     root.mainloop()
